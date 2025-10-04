@@ -3,12 +3,17 @@
 <package format="3">
   <name>my_rb1_description</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="shreyap.lanjewar@gmail.com">shreya</maintainer>
-  <license>TODO: License declaration</license>
+  <description>RB1 Robot Visualization package</description>
+  <maintainer email="shreyap.lanjewar@gmail.com">Shreya</maintainer>
+  <license>MIT</license>
 
+  <depend>rclpy</depend>
   <depend>urdf</depend>
   <depend>xacro</depend>
+
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  <exec_depend>rviz2</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
