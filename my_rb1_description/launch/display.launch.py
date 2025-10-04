@@ -2,9 +2,10 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import (Command, LaunchConfiguration)
 from launch_ros.actions import (Node, SetParameter)
+from launch_ros.parameter_descriptions import ParameterValue
 
 # ROS2 Launch System will look for this function definition #
 def generate_launch_description():
@@ -18,6 +19,17 @@ def generate_launch_description():
     robot_desc_path = os.path.join(package_directory, "urdf", urdf_file)
     print("URDF Loaded !")
 
+    # Read URDF
+    with open(robot_desc_path, "r") as f:
+        urdf_xml = f.read()
+    
+    rviz_cfg_arg = DeclareLaunchArgument(
+        "rviz_config",
+        default_value="",
+        description="Absolute path to an RViz2 .rviz config"
+    )
+    rviz_config = LaunchConfiguration("rviz_config")
+
     # Robot State Publisher (RSP) #
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
@@ -26,23 +38,10 @@ def generate_launch_description():
         output="screen",
         emulate_tty=True,
         parameters=[{'use_sim_time': True, 
-                     'robot_description': Command(['cat ', robot_desc_path])}]
+                     'robot_description': ParameterValue(urdf_xml, value_type=str)}],
     )
 
-    # # Adding new launch arguement for model_name
-    # declare_model_name = DeclareLaunchArgument("model_name", default_value="my_robot",
-    #                                             description="Name of spawned robot model")
-    # # Spawn the Robot #
-    # declare_spawn_x = DeclareLaunchArgument("x", default_value="0.0",
-    #                                         description="Model Spawn X Axis Value")
-    # declare_spawn_y = DeclareLaunchArgument("y", default_value="0.0",
-    #                                         description="Model Spawn Y Axis Value")
-    # declare_spawn_z = DeclareLaunchArgument("z", default_value="0.5",
-    #                                         description="Model Spawn Z Axis Value")
-    declare_rviz_config = DeclareLaunchArgument("rviz_config", default_value="",
-                                                description="Absolute path to RViz2 config")
-
-        # Joint State Publisher GUI #
+    # Joint State Publisher GUI #
     joint_state_publisher_gui_node = Node(
         package='joint_state_publisher_gui',
         executable='joint_state_publisher_gui',
@@ -50,17 +49,11 @@ def generate_launch_description():
         output='screen'
     )
 
-    # RViz2
-    rviz_config = LaunchConfiguration("rviz_config")
-    rviz_args = []
-    rviz_args += ['-d', rviz_config]
-
     rviz2_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=rviz_args,
-        output='screen'
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="screen",
     )
 
     # Create and Return the Launch Description Object #
@@ -68,7 +61,7 @@ def generate_launch_description():
         [
             # Sets use_sim_time for all nodes started below 
             # (doesn't work for nodes started from ignition gazebo) #
-            SetParameter(name="use_sim_time", value=True),
+            rviz_cfg_arg,
             robot_state_publisher_node,
             joint_state_publisher_gui_node,
             rviz2_node,
