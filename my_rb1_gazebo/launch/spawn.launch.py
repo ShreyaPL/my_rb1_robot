@@ -42,7 +42,7 @@ def generate_launch_description():
         arguments=[
             "-name", "my_robot",
             "-allow_renaming", "true",
-            "-topic", "my_rb1_description",
+            "-file", robot_desc_path,
             "-x", LaunchConfiguration("x"),
             "-y", LaunchConfiguration("y"),
             "-z", LaunchConfiguration("z"),
@@ -56,11 +56,11 @@ def generate_launch_description():
         executable="parameter_bridge",
         name="ign_bridge",
         arguments=[
-            "/clock" + "@rosgraph_msgs/msg/Clock" + "[ignition.msgs.Clock",
+            "/clock" + "@rosgraph_msgs/msg/Clock" + "@ignition.msgs.Clock",
             "/cmd_vel" + "@geometry_msgs/msg/Twist" + "@ignition.msgs.Twist",
-            "/tf" + "@tf2_msgs/msg/TFMessage" + "[ignition.msgs.Pose_V",
-            "/odom" + "@nav_msgs/msg/Odometry" + "[ignition.msgs.Odometry",
-            "/laser/scan" + "@sensor_msgs/msg/LaserScan" + "[ignition.msgs.LaserScan",
+            "/tf" + "@tf2_msgs/msg/TFMessage" + "@ignition.msgs.Pose_V",
+            "/odom" + "@nav_msgs/msg/Odometry" + "@ignition.msgs.Odometry",
+            "/scan" + "@sensor_msgs/msg/LaserScan" + "@ignition.msgs.LaserScan",
         ],
         remappings=[
             # there are no remappings for this robot description

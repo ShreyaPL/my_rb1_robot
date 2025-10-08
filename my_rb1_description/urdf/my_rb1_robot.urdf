@@ -13,7 +13,7 @@
             <odom_publish_frequency>20</odom_publish_frequency>
             <cmd_vel_topic>/cmd_vel</cmd_vel_topic>
             <odom_topic>odom</odom_topic>
-            <tf_topic>tf</tf_topic>
+            <!-- <tf_topic>tf</tf_topic> -->
             <odom_frame>odom</odom_frame>
             <robot_base_frame>base_footprint</robot_base_frame>
         </plugin>
@@ -31,7 +31,7 @@
         <sensor type="gpu_lidar" name="head_hokuyo_sensor">
             <!-- <pose relative_to='lidar_frame'>0 0 0 0 0 0</pose> -->
             <update_rate>20</update_rate>
-            <topic>/laser/scan</topic>
+            <topic>/scan</topic>
             <always_on>1</always_on>
             <visualize>true</visualize>
             <ray>
