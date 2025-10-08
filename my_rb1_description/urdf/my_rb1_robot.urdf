@@ -11,11 +11,11 @@
             <wheel_separation>0.40</wheel_separation>
             <wheel_radius>0.025</wheel_radius>
             <odom_publish_frequency>20</odom_publish_frequency>
-            <cmd_vel_topic>/cmd_vel</cmd_vel_topic>
+            <topic>/cmd_vel</topic>
             <odom_topic>odom</odom_topic>
-            <!-- <tf_topic>tf</tf_topic> -->
-            <odom_frame>odom</odom_frame>
-            <robot_base_frame>base_footprint</robot_base_frame>
+            <tf_topic>tf</tf_topic>
+            <frame_id>odom</frame_id>
+            <child_frame_id>base_footprint</child_frame_id>
         </plugin>
     </gazebo>
 
@@ -142,7 +142,7 @@
 
     <!-- base_footprint -> base_link  -->
     <joint name="base_link_plate_joint" type="fixed">
-        <origin xyz="0 0 0.15" rpy="0 0 0"/>
+        <origin xyz="0 0 0.175" rpy="0 0 0"/>
         <parent link="base_footprint"/>
         <child  link="base_link"/>
     </joint>
