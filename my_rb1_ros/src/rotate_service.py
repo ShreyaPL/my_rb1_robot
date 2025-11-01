@@ -18,20 +18,30 @@ def ang_diff(a, b):
     """
     return ang_wrap(a-b)
 
+
 class RotateServer(object):
     def __init__(self):
-        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        rospy.loginfo("Rotate Service READY")
+
+        
         self.yaw = None
         self.prev_yaw = None
+        self.busy = False
+        self.rate = rospy.Rate(20)
+
+        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
         self.sub = rospy.Subscriber("/odom", Odometry, self.odom_callback)
 
         #control paraneters
-        self.kp = rospy.get_param("kp", 1.5)
-        self.max_w = rospy.get_param("max_w", 1.0)   # rad/s
-        self.min_w = rospy.get_param("min_w", 0.2)   # rad/s
-        self.rate = rospy.Rate(20)
+        self.kp = rospy.get_param("kp", 1.2)
+        self.max_w = rospy.get_param("max_w", 0.8)
+        self.min_w = rospy.get_param("min_w", 0.15)
+        self.deadband_deg = rospy.get_param("deadband_deg", 1.0)
+        self.slow_radius_deg = rospy.get_param("slow_radius_deg", 10.0)
+        self.first_odom_timeout = rospy.get_param("first_odom_timeout", 10.0)
+        self.settle_time = rospy.get_param("settle_time", 0.2)
 
-        rospy.Service("/rotate_robot", Rotate, self.handle_rotate)
+        self.service = rospy.Service("/rotate_robot", Rotate, self.handle_rotate)
     
     def odom_callback(self, msg):
         # quaternion -> yaw
@@ -45,50 +55,71 @@ class RotateServer(object):
         self.yaw = yaw
     
     def stop(self):
-        self.cmd_pub.publish(Twist())
+        z = Twist()
+        for _ in range(5):
+            self.cmd_pub.publish(z)
+            self.rate.sleep()
     
     def handle_rotate(self, req):
-        # Wait for first odom
-        t0 = rospy.Time.now()
-        while not rospy.is_shutdown() and self.yaw is None:
-            if (rospy.Time.now() - t0).to_sec() > 3.0:
-                return RotateResponse("ERROR: no odom received")
-            self.rate.sleep()
+        if self.busy:
+            return RotateResponse("ERROR: service busy; try again")
         
-        target_delta = math.radians(req.degrees)
-        if abs(target_delta) < 1e-6:
-            return RotateResponse("OK: 0 deg requested; nothing to do")
-        
-        # Integrate relative rotation
-        self.prev_yaw = self.yaw
-        turned = 0.0
+        self.busy = True
+        rospy.loginfo("Rotate Service REQUESTED: %d deg", req.degrees)
 
-        timeout = max(3.0, 23.0 * abs(target_delta)/max(self.min_w, 1e-3))
-        start = rospy.Time.now()
-        while not rospy.is_shutdown():
-            # update relative rotation
-            dyaw = ang_diff(self.yaw, self.prev_yaw)
-            turned += dyaw
+        try:
+            # Wait for first odom
+            t0 = rospy.Time.now()
+            while not rospy.is_shutdown() and self.yaw is None:
+                if (rospy.Time.now() - t0).to_sec() > self.first_odom_timeout:
+                    rospy.logwarn("No /odom messages received")
+                    return RotateResponse("ERROR: no odom received")
+            
+            target_delta = math.radians(req.degrees)
+            if abs(target_delta) < 1e-3:
+                rospy.loginfo("Rotate Service COMPLETED: 0 deg (nothing to do)")
+                return RotateResponse("OK: 0 deg requested; nothing to do")
+
             self.prev_yaw = self.yaw
-            
-            error = target_delta - turned
-            if abs(error) < math.radians(1.0):
-                self.stop()
-                return RotateResponse("OK: rotation complete")
-            
-            w_cmd = self.kp * error
-            w_cmd = max(-self.max_w, min(self.max_w, w_cmd))
-            if abs(w_cmd) < self.min_w:
-                w_cmd = math.copysign(self.min_w, w_cmd)
-            
-            cmd = Twist()
-            cmd.angular.z = w_cmd
-            self.cmd_pub.publish(cmd)
+            turned = 0.0
+            tol = math.radians(self.deadband_deg)
+            slow_r = math.radians(self.slow_radius_deg)
+            timeout = max(3.0, 3.0 * abs(target_delta) / max(self.min_w, 1e-3))
+            start = rospy.Time.now()
 
-            if (rospy.Time.now() - start).to_sec() > timeout:
-                self.stop()
-                return RotateResponse("ERROR: timeout while rotating")
-            self.rate.sleep()
+            while not rospy.is_shutdown():
+                # update relative rotation
+                dyaw = ang_diff(self.yaw, self.prev_yaw)
+                turned += dyaw
+                self.prev_yaw = self.yaw
+                error = target_delta - turned
+
+                if abs(error) < tol:
+                    self.stop()
+                    self.rate.sleep(self.settle_time)
+                    rospy.loginfo("Rotate Service COMPLETED: %d deg", req.degrees)
+                    return RotateResponse("OK: rotation complete")
+                
+                w_cmd = self.kp * error
+                if abs(error) < slow_r:
+                    w_cmd *= 0.5
+                w_cmd = max(-self.max_w, min(self.max_w, w_cmd))
+                if abs(w_cmd) < self.min_w:
+                    w_cmd = math.copysign(self.min_w, w_cmd)
+                
+                cmd = Twist()
+                cmd.angular.z = w_cmd
+                self.cmd_pub.publish(cmd)
+
+                if (rospy.Time.now() - start).to_sec() > timeout:
+                    self.stop()
+                    rospy.logwarn("Timeout reached before completion")
+                    return RotateResponse("ERROR: timeout while rotating")
+                self.rate.sleep()
+        finally:
+            self.stop()
+            self.busy = False
+
 
 def main():
     rospy.init_node("rotate_service_server")
