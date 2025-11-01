@@ -10,6 +10,7 @@ project(my_rb1_ros)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   message_generation
+  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -105,6 +106,8 @@ catkin_package(
 #  LIBRARIES my_rb1_ros
  CATKIN_DEPENDS rospy
 #  DEPENDS system_lib
+ std_msgs
+ message_runtime
 )
 
 ###########
