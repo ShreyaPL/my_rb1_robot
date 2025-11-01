@@ -12,10 +12,16 @@
             <updateRate>20</updateRate>
             <leftJoint>base_link_left_wheel_joint</leftJoint>
             <rightJoint>base_link_right_wheel_joint</rightJoint>
+
             <publishWheelTF>true</publishWheelTF>
+            <publishOdom>true</publishOdom>
+            <publishTf>true</publishTf>
+            <publishWheelJointState>true</publishWheelJointState>
+
             <wheelSeparation>0.4</wheelSeparation>
             <wheelDiameter>0.05</wheelDiameter>
             <torque>10</torque>
+            
             <commandTopic>cmd_vel</commandTopic>
             <odometryTopic>odom</odometryTopic>
             <odometryFrame>odom</odometryFrame>
@@ -29,7 +35,7 @@
         <sensor type="ray" name="head_hokuyo_sensor">
             <pose>0 0 0 0 0 0</pose>
             <!-- Enable visualization of the sensor -->
-            <visualize>true</visualize>
+            <visualize>false</visualize>
             <update_rate>20</update_rate>
             <ray>
                 <!-- Configure the scanning properties -->
